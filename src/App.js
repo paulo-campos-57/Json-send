@@ -8,6 +8,8 @@ function App() {
   const [subject, setSubject] = useState('');
   const [message, setMessage] = useState('');
   const [isButtonVisible, setIsButtonVisible] = useState(false);
+  const [receivedMessage, setReceivedMessage] = useState(null);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     if (name && email && subject && message) {
@@ -19,6 +21,7 @@ function App() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError(null);
     try {
       const response = await fetch('http://localhost:3000/message', {
         method: 'POST',
@@ -29,11 +32,33 @@ function App() {
       });
       if (response.ok) {
         console.log('Message sent successfully');
+        fetchReceivedMessage(); 
       } else {
-        console.error('Failed to send message');
+        const errorMessage = await response.text();
+        console.error('Failed to send message:', errorMessage);
+        setError(errorMessage);
       }
     } catch (error) {
       console.error('Error:', error);
+      setError(error.message);
+    }
+  };
+
+  const fetchReceivedMessage = async () => {
+    setError(null);
+    try {
+      const response = await fetch('http://localhost:4000/getMessage');
+      if (response.ok) {
+        const data = await response.json();
+        setReceivedMessage(data);
+      } else {
+        const errorMessage = await response.text();
+        console.error('Failed to fetch message:', errorMessage);
+        setError(errorMessage);
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      setError(error.message);
     }
   };
 
@@ -87,6 +112,16 @@ function App() {
           </button>
         </div>
       </form>
+      {error && <div className='error-message'>Error: {error}</div>}
+      {receivedMessage && (
+        <div className='received-message'>
+          <h2>Mensagem Recebida:</h2>
+          <p><strong>Nome:</strong> {receivedMessage.name}</p>
+          <p><strong>E-mail:</strong> {receivedMessage.email}</p>
+          <p><strong>Assunto:</strong> {receivedMessage.subject}</p>
+          <p><strong>Mensagem:</strong> {receivedMessage.message}</p>
+        </div>
+      )}
     </div>
   );
 }
