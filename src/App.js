@@ -17,15 +17,30 @@ function App() {
     }
   }, [name, email, subject, message]);
 
-  const handleNameChange = (e) => setName(e.target.value);
-  const handleEmailChange = (e) => setEmail(e.target.value);
-  const handleSubjectChange = (e) => setSubject(e.target.value);
-  const handleMessageChange = (e) => setMessage(e.target.value);
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      const response = await fetch('http://localhost:3000/message', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ name, email, subject, message })
+      });
+      if (response.ok) {
+        console.log('Message sent successfully');
+      } else {
+        console.error('Failed to send message');
+      }
+    } catch (error) {
+      console.error('Error:', error);
+    }
+  };
 
   return (
     <div className='container'>
       <h1 className='form-title'>Informe a sua mensagem</h1>
-      <form className='message-form'>
+      <form className='message-form' onSubmit={handleSubmit}>
         <div className='input-content'>
           <span className='input-label'>Nome:</span>
           <input
@@ -33,7 +48,7 @@ function App() {
             className='message-input'
             type='text'
             placeholder='Nome'
-            onChange={handleNameChange}
+            onChange={(e) => setName(e.target.value)}
           />
         </div>
         <div className='input-content'>
@@ -43,7 +58,7 @@ function App() {
             className='message-input'
             type='email'
             placeholder='E-mail'
-            onChange={handleEmailChange}
+            onChange={(e) => setEmail(e.target.value)}
           />
         </div>
         <div className='input-content'>
@@ -53,14 +68,14 @@ function App() {
             className='message-input'
             type='text'
             placeholder='Assunto'
-            onChange={handleSubjectChange}
+            onChange={(e) => setSubject(e.target.value)}
           />
         </div>
         <span className='input-label'>Mensagem:</span>
         <textarea
           id="text"
           className='text-input'
-          onChange={handleMessageChange}
+          onChange={(e) => setMessage(e.target.value)}
         />
         <div className="button-container">
           <button
