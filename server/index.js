@@ -1,7 +1,7 @@
 const express = require('express');
-const bodyParser = require('body-parser');
 const fs = require('fs');
 const cors = require('cors');
+const WebSocket = require('ws');
 const app = express();
 const port = 3000;
 
@@ -11,46 +11,38 @@ app.use(cors({
     allowedHeaders: ['Content-Type']
 }));
 
-app.use(bodyParser.json());
+app.use(express.json());
+
+const wss = new WebSocket.Server({ port: 8080 });
+
+wss.on('connection', (ws) => {
+    console.log('WebSocket connection established');
+
+    ws.on('message', (message) => {
+        console.log('received:', message);
+    });
+
+    ws.send(JSON.stringify({ message: 'WebSocket connection established' }));
+});
 
 app.post('/message', (req, res) => {
     const { name, email, subject, message } = req.body;
-    const data = { name, email, subject, message };
+    const messageData = { name, email, subject, message };
 
-    fs.writeFileSync('messages.json', JSON.stringify(data, null, 2));
-    res.status(200).send('Message received and stored');
-});
+    fs.writeFile('receivedMessage.json', JSON.stringify(messageData, null, 2), (err) => {
+        if (err) {
+            console.error('Error writing file:', err);
+            return res.status(500).send('Error writing file');
+        }
 
-app.get('/sendMessage', (req, res) => {
-    const data = fs.readFileSync('messages.json', 'utf8');
-    const options = {
-        hostname: 'localhost',
-        port: 4000,
-        path: '/receiveMessage',
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Content-Length': data.length,
-        },
-    };
-
-    const http = require('http');
-    const request = http.request(options, (response) => {
-        let responseData = '';
-        response.on('data', (chunk) => {
-            responseData += chunk;
+        wss.clients.forEach(client => {
+            if (client.readyState === WebSocket.OPEN) {
+                client.send(JSON.stringify(messageData));
+            }
         });
-        response.on('end', () => {
-            res.status(200).send(`Message sent to other server: ${responseData}`);
-        });
-    });
 
-    request.on('error', (error) => {
-        res.status(500).send(`Error sending message: ${error.message}`);
+        res.status(200).send('Message received');
     });
-
-    request.write(data);
-    request.end();
 });
 
 app.listen(port, () => {
